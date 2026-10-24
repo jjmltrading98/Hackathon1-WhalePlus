@@ -1,0 +1,511 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Hardened Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Validation Blueprint: UserSession
+    function isValidUserSession(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'selectedMode',
+          'statusFilter',
+          'directionFilter',
+          'tickerQuery',
+          'minScoreFilter',
+          'includeEtfs',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'selectedMode',
+          'statusFilter',
+          'directionFilter',
+          'tickerQuery',
+          'minScoreFilter',
+          'includeEtfs',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ownerId == request.auth.uid
+        && data.selectedMode is string && data.selectedMode.size() >= 1 && data.selectedMode.size() <= 32
+        && (data.selectedMode == 'directional_momentum' || data.selectedMode == 'accumulation_watch' || data.selectedMode == 'urgent_flow')
+        && data.statusFilter is string && data.statusFilter.size() >= 1 && data.statusFilter.size() <= 32
+        && (data.statusFilter == 'all' || data.statusFilter == 'confirmed' || data.statusFilter == 'needs_confirmation' || data.statusFilter == 'new' || data.statusFilter == 'expired' || data.statusFilter == 'invalidated')
+        && data.directionFilter is string && data.directionFilter.size() >= 1 && data.directionFilter.size() <= 16
+        && (data.directionFilter == 'all' || data.directionFilter == 'bullish' || data.directionFilter == 'bearish')
+        && data.tickerQuery is string && data.tickerQuery.size() <= 16
+        && data.minScoreFilter is number && data.minScoreFilter >= 0 && data.minScoreFilter <= 100
+        && data.includeEtfs is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: ScannerConfigDoc
+    function isValidScannerConfigDoc(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'scannerId',
+          'name',
+          'mode',
+          'enabled',
+          'minWhaleScore',
+          'minPremium',
+          'minDte',
+          'maxDte',
+          'minVolumeOiRatio',
+          'minSkew',
+          'maxMultilegRatio',
+          'maxSpread',
+          'requireConfirmation',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'scannerId',
+          'name',
+          'mode',
+          'enabled',
+          'minWhaleScore',
+          'minPremium',
+          'minDte',
+          'maxDte',
+          'minVolumeOiRatio',
+          'minSkew',
+          'maxMultilegRatio',
+          'maxSpread',
+          'requireConfirmation',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ownerId == request.auth.uid
+        && data.scannerId is string && data.scannerId.size() >= 1 && data.scannerId.size() <= 64 && data.scannerId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.mode is string && data.mode.size() >= 1 && data.mode.size() <= 32
+        && (data.mode == 'directional_momentum' || data.mode == 'accumulation_watch' || data.mode == 'urgent_flow')
+        && data.enabled is bool
+        && data.minWhaleScore is number && data.minWhaleScore >= 0 && data.minWhaleScore <= 100
+        && data.minPremium is number && data.minPremium >= 0 && data.minPremium <= 100000000
+        && data.minDte is number && data.minDte >= 0 && data.minDte <= 730
+        && data.maxDte is number && data.maxDte >= data.minDte && data.maxDte <= 1095
+        && data.minVolumeOiRatio is number && data.minVolumeOiRatio >= 0 && data.minVolumeOiRatio <= 100
+        && data.minSkew is number && data.minSkew >= 0 && data.minSkew <= 1
+        && data.maxMultilegRatio is number && data.maxMultilegRatio >= 0 && data.maxMultilegRatio <= 1
+        && data.maxSpread is number && data.maxSpread >= 0 && data.maxSpread <= 1
+        && data.requireConfirmation is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: WhaleCandidateDoc
+    function isValidWhaleCandidateDoc(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'candidateId',
+          'scannerId',
+          'dedupKey',
+          'ticker',
+          'optionSymbol',
+          'optionType',
+          'strike',
+          'expiry',
+          'dte',
+          'issueType',
+          'direction',
+          'status',
+          'whaleScore',
+          'premium5m',
+          'contractPremium5m',
+          'contractShare',
+          'sideShare',
+          'sweepRatio',
+          'volume',
+          'openInterest',
+          'volumeOiRatio',
+          'oiStatus',
+          'repeatedHits',
+          'return5m',
+          'relativeVolume5m',
+          'vwapAligned',
+          'candleClosePosition',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'candidateId',
+          'scannerId',
+          'dedupKey',
+          'ticker',
+          'optionSymbol',
+          'optionType',
+          'strike',
+          'expiry',
+          'dte',
+          'issueType',
+          'direction',
+          'status',
+          'whaleScore',
+          'premium5m',
+          'contractPremium5m',
+          'contractShare',
+          'sideShare',
+          'sweepRatio',
+          'volume',
+          'openInterest',
+          'volumeOiRatio',
+          'oiStatus',
+          'repeatedHits',
+          'return5m',
+          'relativeVolume5m',
+          'vwapAligned',
+          'candleClosePosition',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ownerId == request.auth.uid
+        && data.candidateId is string && data.candidateId.size() >= 1 && data.candidateId.size() <= 64 && data.candidateId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.scannerId is string && data.scannerId.size() >= 1 && data.scannerId.size() <= 64
+        && data.dedupKey is string && data.dedupKey.size() >= 1 && data.dedupKey.size() <= 120
+        && data.ticker is string && data.ticker.size() >= 1 && data.ticker.size() <= 16
+        && data.optionSymbol is string && data.optionSymbol.size() >= 1 && data.optionSymbol.size() <= 40
+        && data.optionType is string && data.optionType.size() >= 3 && data.optionType.size() <= 8
+        && (data.optionType == 'call' || data.optionType == 'put')
+        && data.strike is number && data.strike > 0
+        && data.expiry is string && data.expiry.size() >= 8 && data.expiry.size() <= 16
+        && data.dte is number && data.dte >= 0 && data.dte <= 1095
+        && data.issueType is string && data.issueType.size() >= 3 && data.issueType.size() <= 24
+        && (data.issueType == 'Common Stock' || data.issueType == 'ADR' || data.issueType == 'ETF' || data.issueType == 'Index')
+        && data.direction is string && data.direction.size() >= 7 && data.direction.size() <= 16
+        && (data.direction == 'bullish' || data.direction == 'bearish')
+        && data.status is string && data.status.size() >= 3 && data.status.size() <= 24
+        && (data.status == 'new' || data.status == 'needs_confirmation' || data.status == 'confirmed' || data.status == 'expired' || data.status == 'invalidated')
+        && data.whaleScore is number && data.whaleScore >= 0 && data.whaleScore <= 100
+        && data.premium5m is number && data.premium5m >= 0
+        && data.contractPremium5m is number && data.contractPremium5m >= 0
+        && data.contractShare is number && data.contractShare >= 0 && data.contractShare <= 1
+        && data.sideShare is number && data.sideShare >= 0 && data.sideShare <= 1
+        && data.sweepRatio is number && data.sweepRatio >= 0 && data.sweepRatio <= 1
+        && data.volume is number && data.volume >= 0
+        && data.openInterest is number && data.openInterest >= 0
+        && data.volumeOiRatio is number && data.volumeOiRatio >= 0
+        && data.oiStatus is string && data.oiStatus.size() >= 10 && data.oiStatus.size() <= 48
+        && (data.oiStatus == 'unconfirmed_until_next_oi_update' || data.oiStatus == 'verified_next_day_oi')
+        && data.repeatedHits is bool
+        && data.return5m is number
+        && data.relativeVolume5m is number && data.relativeVolume5m >= 0
+        && data.vwapAligned is bool
+        && data.candleClosePosition is number && data.candleClosePosition >= 0 && data.candleClosePosition <= 1
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: OptionPrintDoc
+    function isValidOptionPrintDoc(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'eventId',
+          'ticker',
+          'optionSymbol',
+          'optionType',
+          'strike',
+          'dte',
+          'size',
+          'price',
+          'premium',
+          'side',
+          'isSweep',
+          'isMultiLeg',
+          'spread',
+          'accepted',
+          'rejectReason',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'eventId',
+          'ticker',
+          'optionSymbol',
+          'optionType',
+          'strike',
+          'dte',
+          'size',
+          'price',
+          'premium',
+          'side',
+          'isSweep',
+          'isMultiLeg',
+          'spread',
+          'accepted',
+          'rejectReason',
+          'createdAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ownerId == request.auth.uid
+        && data.eventId is string && data.eventId.size() >= 1 && data.eventId.size() <= 64 && data.eventId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ticker is string && data.ticker.size() >= 1 && data.ticker.size() <= 16
+        && data.optionSymbol is string && data.optionSymbol.size() >= 1 && data.optionSymbol.size() <= 40
+        && data.optionType is string && data.optionType.size() >= 3 && data.optionType.size() <= 8
+        && (data.optionType == 'call' || data.optionType == 'put')
+        && data.strike is number && data.strike > 0
+        && data.dte is number && data.dte >= 0 && data.dte <= 1095
+        && data.size is number && data.size > 0
+        && data.price is number && data.price > 0
+        && data.premium is number && data.premium > 0
+        && data.side is string && data.side.size() >= 3 && data.side.size() <= 12
+        && (data.side == 'ask' || data.side == 'bid' || data.side == 'mid' || data.side == 'unknown')
+        && data.isSweep is bool
+        && data.isMultiLeg is bool
+        && data.spread is number && data.spread >= 0 && data.spread <= 1
+        && data.accepted is bool
+        && data.rejectReason is string && data.rejectReason.size() <= 240
+        && data.createdAt is timestamp;
+    }
+
+    // Collection 1: /userSessions/{sessionId}
+    match /userSessions/{sessionId} {
+      allow get: if isVerifiedUser() && isValidId(sessionId) && sessionId == request.auth.uid && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(sessionId)
+        && sessionId == request.auth.uid
+        && isValidUserSession(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidUserSession(incoming())
+        && isValidId(sessionId)
+        && sessionId == request.auth.uid
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'selectedMode',
+          'statusFilter',
+          'directionFilter',
+          'tickerQuery',
+          'minScoreFilter',
+          'includeEtfs',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(sessionId) && sessionId == request.auth.uid && existing().ownerId == request.auth.uid;
+    }
+
+    // Collection 2: /scannerConfigs/{scannerId}
+    match /scannerConfigs/{scannerId} {
+      allow get: if isVerifiedUser() && isValidId(scannerId) && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(scannerId)
+        && isValidScannerConfigDoc(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidScannerConfigDoc(incoming())
+        && isValidId(scannerId)
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().scannerId == existing().scannerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name',
+          'mode',
+          'enabled',
+          'minWhaleScore',
+          'minPremium',
+          'minDte',
+          'maxDte',
+          'minVolumeOiRatio',
+          'minSkew',
+          'maxMultilegRatio',
+          'maxSpread',
+          'requireConfirmation',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(scannerId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Collection 3: /whaleCandidates/{candidateId}
+    match /whaleCandidates/{candidateId} {
+      allow get: if isVerifiedUser() && isValidId(candidateId) && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(candidateId)
+        && isValidWhaleCandidateDoc(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidWhaleCandidateDoc(incoming())
+        && isValidId(candidateId)
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().candidateId == existing().candidateId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && existing().status != 'invalidated'
+        && (
+          // Action 1: Update candidate lifecycle / OI verification state
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'oiStatus', 'updatedAt']) ||
+          // Action 2: Recalculate candidate flow & score metrics
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'status',
+            'whaleScore',
+            'premium5m',
+            'contractPremium5m',
+            'contractShare',
+            'sideShare',
+            'sweepRatio',
+            'volume',
+            'openInterest',
+            'volumeOiRatio',
+            'oiStatus',
+            'repeatedHits',
+            'return5m',
+            'relativeVolume5m',
+            'vwapAligned',
+            'candleClosePosition',
+            'updatedAt'
+          ])
+        );
+      allow delete: if isVerifiedUser() && isValidId(candidateId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Validation Blueprint: LlmEngineConfigDoc
+    function isValidLlmEngineConfigDoc(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'provider',
+          'enabled',
+          'endpointUrl',
+          'modelId',
+          'temperature',
+          'maxTokens',
+          'topP',
+          'timeoutMs',
+          'streamResponses',
+          'autoAnalyzeConfirmedWhales',
+          'includeGexAndTideContext',
+          'includeAlpacaStockIndicators',
+          'systemPromptTemplate',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'provider',
+          'enabled',
+          'endpointUrl',
+          'modelId',
+          'temperature',
+          'maxTokens',
+          'topP',
+          'timeoutMs',
+          'streamResponses',
+          'autoAnalyzeConfirmedWhales',
+          'includeGexAndTideContext',
+          'includeAlpacaStockIndicators',
+          'systemPromptTemplate',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ownerId == request.auth.uid
+        && data.provider is string && data.provider.size() >= 1 && data.provider.size() <= 32
+        && (data.provider == 'lm_studio' || data.provider == 'openai_compatible')
+        && data.enabled is bool
+        && data.endpointUrl is string && data.endpointUrl.size() >= 8 && data.endpointUrl.size() <= 256 && data.endpointUrl.matches('^https?://.+$')
+        && data.modelId is string && data.modelId.size() >= 1 && data.modelId.size() <= 120
+        && data.temperature is number && data.temperature >= 0 && data.temperature <= 2
+        && data.maxTokens is number && data.maxTokens >= 64 && data.maxTokens <= 32768
+        && data.topP is number && data.topP >= 0 && data.topP <= 1
+        && data.timeoutMs is number && data.timeoutMs >= 1000 && data.timeoutMs <= 120000
+        && data.streamResponses is bool
+        && data.autoAnalyzeConfirmedWhales is bool
+        && data.includeGexAndTideContext is bool
+        && data.includeAlpacaStockIndicators is bool
+        && data.systemPromptTemplate is string && data.systemPromptTemplate.size() >= 1 && data.systemPromptTemplate.size() <= 2000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Collection 4: /optionPrints/{printId} (Append-Only Audit Log)
+    match /optionPrints/{printId} {
+      allow get: if isVerifiedUser() && isValidId(printId) && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(printId)
+        && isValidOptionPrintDoc(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedUser() && isValidId(printId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Collection 5: /llmEngineConfigs/{configId}
+    match /llmEngineConfigs/{configId} {
+      allow get: if isVerifiedUser() && isValidId(configId) && configId == request.auth.uid && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(configId)
+        && configId == request.auth.uid
+        && isValidLlmEngineConfigDoc(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidLlmEngineConfigDoc(incoming())
+        && isValidId(configId)
+        && configId == request.auth.uid
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'provider',
+          'enabled',
+          'endpointUrl',
+          'modelId',
+          'temperature',
+          'maxTokens',
+          'topP',
+          'timeoutMs',
+          'streamResponses',
+          'autoAnalyzeConfirmedWhales',
+          'includeGexAndTideContext',
+          'includeAlpacaStockIndicators',
+          'systemPromptTemplate',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(configId) && configId == request.auth.uid && existing().ownerId == request.auth.uid;
+    }
+  }
+}

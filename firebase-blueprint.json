@@ -1,0 +1,607 @@
+{
+  "entities": {
+    "UserSession": {
+      "title": "UserSession",
+      "description": "Persisted user workspace settings and scanner filter state synchronized across browser sessions.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the session owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "selectedMode": {
+          "type": "string",
+          "description": "Active scanner mode identifier.",
+          "enum": ["directional_momentum", "accumulation_watch", "urgent_flow"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "statusFilter": {
+          "type": "string",
+          "description": "Active candidate lifecycle status filter.",
+          "enum": ["all", "confirmed", "needs_confirmation", "new", "expired", "invalidated"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "directionFilter": {
+          "type": "string",
+          "description": "Active flow direction filter.",
+          "enum": ["all", "bullish", "bearish"],
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "tickerQuery": {
+          "type": "string",
+          "description": "Current ticker search filter.",
+          "minLength": 0,
+          "maxLength": 16
+        },
+        "minScoreFilter": {
+          "type": "number",
+          "description": "Minimum Whale Score filter threshold (0-100)."
+        },
+        "includeEtfs": {
+          "type": "boolean",
+          "description": "Whether ETF and Index candidates are included in the scanner view."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "selectedMode",
+        "statusFilter",
+        "directionFilter",
+        "tickerQuery",
+        "minScoreFilter",
+        "includeEtfs",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ScannerConfigDoc": {
+      "title": "ScannerConfigDoc",
+      "description": "Saved scanner mode configuration and thresholds synchronized across sessions.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the configuration owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "scannerId": {
+          "type": "string",
+          "description": "Unique scanner profile identifier.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable scanner name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "mode": {
+          "type": "string",
+          "description": "Scanner mode preset.",
+          "enum": ["directional_momentum", "accumulation_watch", "urgent_flow"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this scanner profile is enabled."
+        },
+        "minWhaleScore": {
+          "type": "number",
+          "description": "Minimum deterministic Whale Score (0-100)."
+        },
+        "minPremium": {
+          "type": "number",
+          "description": "Minimum 5-minute option premium in USD."
+        },
+        "minDte": {
+          "type": "number",
+          "description": "Minimum days to expiration."
+        },
+        "maxDte": {
+          "type": "number",
+          "description": "Maximum days to expiration."
+        },
+        "minVolumeOiRatio": {
+          "type": "number",
+          "description": "Minimum volume to open interest ratio."
+        },
+        "minSkew": {
+          "type": "number",
+          "description": "Minimum dominant side skew ratio (0.0-1.0)."
+        },
+        "maxMultilegRatio": {
+          "type": "number",
+          "description": "Maximum multi-leg volume ratio (0.0-1.0)."
+        },
+        "maxSpread": {
+          "type": "number",
+          "description": "Maximum bid-ask spread ratio (0.0-1.0)."
+        },
+        "requireConfirmation": {
+          "type": "boolean",
+          "description": "Whether 5-minute underlying candle confirmation is required."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "scannerId",
+        "name",
+        "mode",
+        "enabled",
+        "minWhaleScore",
+        "minPremium",
+        "minDte",
+        "maxDte",
+        "minVolumeOiRatio",
+        "minSkew",
+        "maxMultilegRatio",
+        "maxSpread",
+        "requireConfirmation",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WhaleCandidateDoc": {
+      "title": "WhaleCandidateDoc",
+      "description": "Persisted WhaleCandidate cluster emitted by the scanner pipeline.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the candidate owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "candidateId": {
+          "type": "string",
+          "description": "Unique candidate identifier.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "scannerId": {
+          "type": "string",
+          "description": "Scanner profile ID that emitted this candidate.",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "dedupKey": {
+          "type": "string",
+          "description": "1-hour deduplication key (ticker:option_symbol:direction).",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "ticker": {
+          "type": "string",
+          "description": "Underlying ticker symbol.",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "optionSymbol": {
+          "type": "string",
+          "description": "OCC option contract symbol.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "optionType": {
+          "type": "string",
+          "description": "Option contract type.",
+          "enum": ["call", "put"],
+          "minLength": 3,
+          "maxLength": 8
+        },
+        "strike": {
+          "type": "number",
+          "description": "Option strike price."
+        },
+        "expiry": {
+          "type": "string",
+          "description": "Expiration date YYYY-MM-DD.",
+          "minLength": 8,
+          "maxLength": 16
+        },
+        "dte": {
+          "type": "number",
+          "description": "Days to expiration."
+        },
+        "issueType": {
+          "type": "string",
+          "description": "Underlying security issue type.",
+          "enum": ["Common Stock", "ADR", "ETF", "Index"],
+          "minLength": 3,
+          "maxLength": 24
+        },
+        "direction": {
+          "type": "string",
+          "description": "Classified flow direction.",
+          "enum": ["bullish", "bearish"],
+          "minLength": 7,
+          "maxLength": 16
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status of the candidate.",
+          "enum": ["new", "needs_confirmation", "confirmed", "expired", "invalidated"],
+          "minLength": 3,
+          "maxLength": 24
+        },
+        "whaleScore": {
+          "type": "number",
+          "description": "Deterministic 0-100 Whale Score."
+        },
+        "premium5m": {
+          "type": "number",
+          "description": "5-minute directional premium in USD."
+        },
+        "contractPremium5m": {
+          "type": "number",
+          "description": "5-minute contract premium in USD."
+        },
+        "contractShare": {
+          "type": "number",
+          "description": "Contract share of ticker directional premium (0.0-1.0)."
+        },
+        "sideShare": {
+          "type": "number",
+          "description": "Dominant ask/bid side share (0.0-1.0)."
+        },
+        "sweepRatio": {
+          "type": "number",
+          "description": "Intermarket sweep ratio (0.0-1.0)."
+        },
+        "volume": {
+          "type": "number",
+          "description": "Contract intraday volume."
+        },
+        "openInterest": {
+          "type": "number",
+          "description": "Contract prior-day open interest."
+        },
+        "volumeOiRatio": {
+          "type": "number",
+          "description": "Ratio of volume to open interest."
+        },
+        "oiStatus": {
+          "type": "string",
+          "description": "Open interest verification state.",
+          "enum": ["unconfirmed_until_next_oi_update", "verified_next_day_oi"],
+          "minLength": 10,
+          "maxLength": 48
+        },
+        "repeatedHits": {
+          "type": "boolean",
+          "description": "Whether repeated millisecond hits occurred."
+        },
+        "return5m": {
+          "type": "number",
+          "description": "5-minute underlying stock return."
+        },
+        "relativeVolume5m": {
+          "type": "number",
+          "description": "5-minute underlying relative volume."
+        },
+        "vwapAligned": {
+          "type": "boolean",
+          "description": "Whether 5-minute close is aligned with 5-minute VWAP."
+        },
+        "candleClosePosition": {
+          "type": "number",
+          "description": "Close position within the 5-minute candle range (0.0-1.0)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "candidateId",
+        "scannerId",
+        "dedupKey",
+        "ticker",
+        "optionSymbol",
+        "optionType",
+        "strike",
+        "expiry",
+        "dte",
+        "issueType",
+        "direction",
+        "status",
+        "whaleScore",
+        "premium5m",
+        "contractPremium5m",
+        "contractShare",
+        "sideShare",
+        "sweepRatio",
+        "volume",
+        "openInterest",
+        "volumeOiRatio",
+        "oiStatus",
+        "repeatedHits",
+        "return5m",
+        "relativeVolume5m",
+        "vwapAligned",
+        "candleClosePosition",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OptionPrintDoc": {
+      "title": "OptionPrintDoc",
+      "description": "Persisted normalized option print or rejected print record.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user who logged or acquired the print.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Provider trade ID or deterministic FNV-1a print hash.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ticker": {
+          "type": "string",
+          "description": "Underlying ticker symbol.",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "optionSymbol": {
+          "type": "string",
+          "description": "OCC option contract symbol.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "optionType": {
+          "type": "string",
+          "description": "Option contract type.",
+          "enum": ["call", "put"],
+          "minLength": 3,
+          "maxLength": 8
+        },
+        "strike": {
+          "type": "number",
+          "description": "Option strike price."
+        },
+        "dte": {
+          "type": "number",
+          "description": "Days to expiration."
+        },
+        "size": {
+          "type": "number",
+          "description": "Contract print size."
+        },
+        "price": {
+          "type": "number",
+          "description": "Contract execution price."
+        },
+        "premium": {
+          "type": "number",
+          "description": "Total print premium in USD."
+        },
+        "side": {
+          "type": "string",
+          "description": "Execution side.",
+          "enum": ["ask", "bid", "mid", "unknown"],
+          "minLength": 3,
+          "maxLength": 12
+        },
+        "isSweep": {
+          "type": "boolean",
+          "description": "Whether print is an intermarket sweep."
+        },
+        "isMultiLeg": {
+          "type": "boolean",
+          "description": "Whether print is part of a multi-leg strategy."
+        },
+        "spread": {
+          "type": "number",
+          "description": "Option bid-ask spread ratio."
+        },
+        "accepted": {
+          "type": "boolean",
+          "description": "Whether print passed hard reject rules."
+        },
+        "rejectReason": {
+          "type": "string",
+          "description": "Hard reject rule explanation if rejected, or empty string.",
+          "minLength": 0,
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "eventId",
+        "ticker",
+        "optionSymbol",
+        "optionType",
+        "strike",
+        "dte",
+        "size",
+        "price",
+        "premium",
+        "side",
+        "isSweep",
+        "isMultiLeg",
+        "spread",
+        "accepted",
+        "rejectReason",
+        "createdAt"
+      ]
+    },
+    "LlmEngineConfigDoc": {
+      "title": "LlmEngineConfigDoc",
+      "description": "Persisted LM Studio LLM engine endpoint and inference configuration synchronized across sessions.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the configuration owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "provider": {
+          "type": "string",
+          "description": "LLM engine provider type.",
+          "enum": ["lm_studio", "openai_compatible"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the LM Studio LLM engine integration is enabled."
+        },
+        "endpointUrl": {
+          "type": "string",
+          "description": "Base HTTP/HTTPS endpoint URL for the LM Studio server (e.g. http://localhost:1234/v1).",
+          "minLength": 8,
+          "maxLength": 256,
+          "pattern": "^https?://.+$"
+        },
+        "modelId": {
+          "type": "string",
+          "description": "Target model identifier loaded in LM Studio.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Sampling temperature (0.0 to 2.0)."
+        },
+        "maxTokens": {
+          "type": "number",
+          "description": "Maximum completion tokens (64 to 32768)."
+        },
+        "topP": {
+          "type": "number",
+          "description": "Nucleus sampling top-p threshold (0.0 to 1.0)."
+        },
+        "timeoutMs": {
+          "type": "number",
+          "description": "Request timeout in milliseconds (1000 to 120000)."
+        },
+        "streamResponses": {
+          "type": "boolean",
+          "description": "Whether to stream token responses when executing LLM activity."
+        },
+        "autoAnalyzeConfirmedWhales": {
+          "type": "boolean",
+          "description": "Whether confirmed WhaleCandidate clusters automatically trigger LLM engine activity."
+        },
+        "includeGexAndTideContext": {
+          "type": "boolean",
+          "description": "Whether Market Tide regime and GEX wall levels are injected into the LLM prompt."
+        },
+        "includeAlpacaStockIndicators": {
+          "type": "boolean",
+          "description": "Whether Alpaca 1m/5m technical indicators and lit flow are injected into the LLM prompt."
+        },
+        "systemPromptTemplate": {
+          "type": "string",
+          "description": "System prompt instructions used when calling the LM Studio engine.",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "provider",
+        "enabled",
+        "endpointUrl",
+        "modelId",
+        "temperature",
+        "maxTokens",
+        "topP",
+        "timeoutMs",
+        "streamResponses",
+        "autoAnalyzeConfirmedWhales",
+        "includeGexAndTideContext",
+        "includeAlpacaStockIndicators",
+        "systemPromptTemplate",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/userSessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/UserSession" },
+      "description": "User workspace session settings and active scanner filter state."
+    },
+    "/scannerConfigs/{scannerId}": {
+      "schema": { "$ref": "#/entities/ScannerConfigDoc" },
+      "description": "User-saved scanner mode configurations and thresholds."
+    },
+    "/whaleCandidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/WhaleCandidateDoc" },
+      "description": "Acquired and scored WhaleCandidate records."
+    },
+    "/optionPrints/{printId}": {
+      "schema": { "$ref": "#/entities/OptionPrintDoc" },
+      "description": "Acquired normalized option prints and hard-reject audit records."
+    },
+    "/llmEngineConfigs/{configId}": {
+      "schema": { "$ref": "#/entities/LlmEngineConfigDoc" },
+      "description": "User-saved LM Studio LLM engine endpoint and inference settings."
+    }
+  }
+}

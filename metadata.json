@@ -1,0 +1,6 @@
+{
+  "name": "WhalePulse Options Flow Scanner",
+  "description": "Deterministic institutional options flow scanner implementing Unusual Whales real-time tape clustering, candle-burst detection, and 6-factor Whale Score ranking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
